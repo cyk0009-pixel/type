@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0" />
+  <title>장기요양 케어팀 역할 진단기 | 케어팀 케미 진단</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- html2pdf.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Pretendard Font -->
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+
+  <style>
+    * {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      box-sizing: border-box;
+    }
+
+    input, textarea, select {
+      -webkit-user-select: text !important;
+      -moz-user-select: text !important;
+      -ms-user-select: text !important;
+      user-select: text !important;
+    }
+
+    body {
+      background-color: #f4f7f5;
+      color: #111827;
+      font-size: 18px;
+      line-height: 1.65;
+      overflow-x: hidden;
+    }
+
+    /* 5060 시니어 친화형 큰 글씨 & 고대비 스타일 */
+    .senior-title {
+      font-size: clamp(1.5rem, 4vw, 2.25rem);
+      line-height: 1.35;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .senior-question {
+      font-size: clamp(1.2rem, 3.2vw, 1.45rem);
+      line-height: 1.55;
+      font-weight: 800;
+      color: #0f172a;
+      word-break: keep-all;
+    }
+
+    .senior-body {
+      font-size: clamp(1.08rem, 2.6vw, 1.22rem);
+      line-height: 1.7;
+      color: #1e293b;
+      word-break: keep-all;
+    }
+
+    /* 리커트 척도 큰 버튼 */
+    .likert-btn {
+      transition: all 0.18s ease;
+      min-height: 76px;
+    }
+    .likert-btn:hover {
+      transform: translateY(-2px);
+      border-color: #059669;
+    }
+    .likert-btn.selected {
+      background-color: #059669 !important;
+      color: #ffffff !important;
+      border-color: #047857 !important;
+      box-shadow: 0 6px 14px rgba(5, 150, 105, 0.35);
+      transform: scale(1.03);
+    }
+    .likert-btn.selected span {
+      color: #ffffff !important;
+    }
+
+    /* 차트 컨테이너 반응형 높이 */
+    .radar-box {
+      position: relative;
+      width: 100%;
+      height: 540px;
+      margin: 0 auto;
+    }
+    .bar-box {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+      .radar-box {
+        height: 370px;
+      }
+      .bar-box {
+        height: 460px;
+      }
+      .likert-btn {
+        min-height: 68px;
+        padding: 8px 4px !important;
+      }
+    }
+
+    /* PDF 추출 모드 & A4 인쇄 최적화 */
+    .pdf-export-mode {
+      width: 740px !important;
+      max-width: 740px !important;
+      margin: 0 auto !important;
+      padding: 16px !important;
+      background: #ffffff !important;
+    }
+    .pdf-export-mode .radar-box {
+      height: 360px !important;
+      max-width: 660px !important;
+    }
+    .pdf-export-mode .bar-box {
+      height: 290px !important;
+      max-width: 660px !important;
+    }
+    .pdf-export-mode .no-print {
+      display: none !important;
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+      body {
+        background: #ffffff !important;
+        font-size: 13pt !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #app-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      .print-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+        margin-bottom: 14px !important;
+      }
+      .radar-box {
+        height: 340px !important;
+        max-width: 640px !important;
+      }
+      .bar-box {
+        height: 270px !important;
+        max-width: 640px !important;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 상단 네비게이션 바 -->
+  <header class="bg-emerald-900 text-white shadow-md sticky top-0 z-30 no-print">
+    <div class="max-w-4xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2.5 cursor-pointer" onclick="resetToHome()">
+        <span class="text-3xl">🌿</span>
+        <div>
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight leading-none">장기요양 케어팀 역할 진단기</h1>
+          <p class="text-xs sm:text-sm text-emerald-200 mt-1 font-medium">요양원 · 주간보호 · 방문요양 맞춤형 협업 케미 테스트</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openDictionaryModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-2 rounded-xl font-bold text-sm sm:text-base flex items-center gap-1.5 shadow-sm border border-emerald-500 transition">
+          <span>🐾</span> <span>9가지 캐릭터 도감</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 컨테이너 -->
+  <main id="app-container" class="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-6">
+
+    <!-- 1. 시작 화면 (인트로) -->
+    <section id="screen-intro" class="space-y-6">
+      <div class="bg-white rounded-3xl shadow-lg border-2 border-emerald-100 p-6 sm:p-10 text-center space-y-6">
+        <div class="inline-flex items-center gap-2 bg-emerald-100 text-emerald-900 px-4 py-2 rounded-full font-extrabold text-base sm:text-lg">
+          <span>⏱️ 약 3~5분 소요 (총 27문항)</span>
+        </div>
+
+        <h2 class="senior-title text-slate-900">
+          돌봄 현장에서 나는 어떤<br class="sm:hidden" />
+          <span class="text-emerald-700 underline decoration-emerald-300 decoration-4 underline-offset-4">동물 캐릭터 유형</span>일까?
+        </h2>
+
+        <p class="senior-body text-slate-700 max-w-2xl mx-auto">
+          어르신 케어, 급여제공기록, 보호자 소통, 공단 평가 준비까지!<br />
+          장기요양기관에서 일할 때 나타나는 <strong>나의 진짜 강점</strong>과 <strong>동료들과 마음이 척척 맞는 소통 비법</strong>을 알아보세요.
+        </p>
+
+        <!-- 9종 동물 미리보기 배지 -->
+        <div class="grid grid-cols-3 sm:grid-cols-3 gap-2.5 sm:gap-3 max-w-2xl mx-auto pt-2">
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦦</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">기발한 수달</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">창의적 돌봄설계가</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦊</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">발 빠른 미어캣</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">대외 협력 소통가</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🐘</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">인자한 코끼리</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">팀 시너지 조율사</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦁</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">열정 불도저 사자</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">목표 돌파 행동대장</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦉</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">냉철한 부엉이</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">철저한 리스크 감시관</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🐹</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">다정한 쿼카</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">마음이음 분위기메이커</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦫</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">성실한 비버</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">우직한 루틴 실행가</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🐝</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">꼼꼼한 꿀벌</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">빈틈없는 마감 수호자</div>
+          </div>
+          <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 text-center">
+            <div class="text-3xl mb-1">🦅</div>
+            <div class="font-extrabold text-slate-800 text-sm sm:text-base">탐구하는 독수리</div>
+            <div class="text-xs sm:text-sm text-emerald-700 font-bold">전문 케어 스페셜리스트</div>
+          </div>
+        </div>
+
+        <!-- 참여자 기본 정보 입력 -->
+        <div class="bg-emerald-50/80 border-2 border-emerald-200 rounded-2xl p-5 sm:p-6 max-w-2xl mx-auto text-left space-y-4">
+          <h3 class="text-lg sm:text-xl font-extrabold text-emerald-950 flex items-center gap-2">
+            <span>📋</span> <span>진단자 정보 입력 (결과지 인쇄 시 표시됩니다)</span>
+          </h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div>
+              <label class="block text-base font-bold text-slate-800 mb-1.5">기관명</label>
+              <input type="text" id="input-org" placeholder="예: 행복요양원" class="w-full px-4 py-3 text-lg font-bold rounded-xl border-2 border-slate-300 focus:border-emerald-600 focus:outline-none bg-white" />
+            </div>
+            <div>
+              <label class="block text-base font-bold text-slate-800 mb-1.5">직종 / 직책</label>
+              <select id="input-job" class="w-full px-4 py-3 text-lg font-bold rounded-xl border-2 border-slate-300 focus:border-emerald-600 focus:outline-none bg-white">
+                <option value="요양보호사">요양보호사</option>
+                <option value="사회복지사">사회복지사</option>
+                <option value="간호(조무)사">간호(조무)사</option>
+                <option value="물리(작업)치료사">물리(작업)치료사</option>
+                <option value="시설장 / 원장">시설장 / 원장</option>
+                <option value="사무국장 / 팀장">사무국장 / 팀장</option>
+                <option value="조리원 / 위생원 / 기타">조리원 / 위생원 / 기타</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-base font-bold text-slate-800 mb-1.5">성명</label>
+              <input type="text" id="input-name" placeholder="예: 홍길동" class="w-full px-4 py-3 text-lg font-bold rounded-xl border-2 border-slate-300 focus:border-emerald-600 focus:outline-none bg-white" />
+            </div>
+          </div>
+        </div>
+
+        <div class="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+          <button onclick="startQuiz()" class="w-full sm:w-auto px-10 py-5 bg-emerald-700 hover:bg-emerald-800 text-white text-xl sm:text-2xl font-black rounded-2xl shadow-lg transition transform hover:-translate-y-0.5">
+            진단 시작하기 ▶
+          </button>
+          <button onclick="fillDemoResult()" class="w-full sm:w-auto px-6 py-5 bg-slate-200 hover:bg-slate-300 text-slate-800 text-lg font-bold rounded-2xl transition">
+            샘플 결과 바로보기
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 문항 진단 화면 -->
+    <section id="screen-quiz" class="hidden space-y-6">
+      <!-- 상단 진행률 바 -->
+      <div class="bg-white rounded-2xl shadow-md border-2 border-emerald-200 p-4 sm:p-6 sticky top-16 z-20">
+        <div class="flex items-center justify-between mb-2">
+          <span id="page-indicator" class="text-lg sm:text-xl font-extrabold text-emerald-900">1 / 3 페이지 (1~9번 문항)</span>
+          <span id="progress-text" class="text-lg sm:text-xl font-black text-emerald-700">0 / 27 완료 (0%)</span>
+        </div>
+        <div class="w-full h-4 bg-slate-200 rounded-full overflow-hidden">
+          <div id="progress-bar" class="h-full bg-emerald-600 transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p class="text-sm sm:text-base text-slate-600 font-bold mt-2">
+          💡 정답은 없습니다! 평소 우리 기관에서 일할 때 나의 모습과 가장 가까운 번호를 눌러주세요.
+        </p>
+      </div>
+
+      <!-- 문항 리스트 영역 -->
+      <div id="questions-container" class="space-y-5"></div>
+
+      <!-- 페이지 이동 버튼 -->
+      <div class="flex items-center justify-between gap-4 pt-4 pb-10">
+        <button id="btn-prev" onclick="prevPage()" class="px-6 py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 text-lg sm:text-xl font-extrabold rounded-2xl transition">
+          ◀ 이전 페이지
+        </button>
+        <button id="btn-next" onclick="nextPage()" class="flex-1 sm:flex-none px-10 py-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xl sm:text-2xl font-black rounded-2xl shadow-lg transition">
+          다음 페이지 ▶
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. 진단 결과 화면 -->
+    <section id="screen-result" class="hidden space-y-6">
+      <div id="printable-area" class="space-y-6">
+
+        <!-- 리포트 헤더 카드 -->
+        <div class="print-card bg-white rounded-3xl shadow-md border-2 border-emerald-200 p-5 sm:p-8">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-slate-200 pb-4 mb-6">
+            <div>
+              <span class="inline-block bg-emerald-800 text-white text-sm sm:text-base font-extrabold px-3.5 py-1 rounded-lg mb-1">
+                장기요양 케어팀 역할 진단 결과표
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black text-slate-900">나의 돌봄 협업 캐릭터 리포트</h2>
+            </div>
+            <div class="bg-slate-100 rounded-2xl px-4 py-3 text-base sm:text-lg font-bold text-slate-800 space-y-0.5">
+              <div>🏢 기관명: <span id="res-org" class="text-emerald-800 font-extrabold">-</span></div>
+              <div>👤 진단자: <span id="res-user" class="text-emerald-800 font-extrabold">-</span></div>
+              <div>📅 진단일: <span id="res-date" class="text-slate-700">-</span></div>
+            </div>
+          </div>
+
+          <!-- 대표 캐릭터 결과 박스 -->
+          <div class="bg-gradient-to-br from-emerald-50 via-teal-50 to-emerald-100 border-2 border-emerald-300 rounded-3xl p-6 sm:p-8 text-center space-y-4">
+            <div class="inline-block bg-white text-emerald-900 font-extrabold px-4 py-1.5 rounded-full text-base sm:text-lg shadow-sm border border-emerald-200">
+              🏆 나의 제1주역할 (최고 득점 유형)
+            </div>
+
+            <div id="primary-emoji" class="text-7xl sm:text-8xl py-2">🦦</div>
+
+            <div class="space-y-2">
+              <p class="text-xl sm:text-2xl font-extrabold text-slate-700">당신의 장기요양 팀 역할 유형은</p>
+              <h3 id="primary-title" class="text-2xl sm:text-4xl font-black text-emerald-900 leading-tight break-keep">
+                “기발한 수달 (창의적 돌봄설계가)”
+              </h3>
+              <p id="primary-score-badge" class="inline-block bg-emerald-800 text-white text-lg sm:text-xl font-black px-5 py-1.5 rounded-full">
+                15점 만점 중 14점
+              </p>
+            </div>
+
+            <p id="primary-quote" class="text-lg sm:text-2xl font-extrabold text-emerald-950 bg-white/90 rounded-2xl p-4 sm:p-5 max-w-2xl mx-auto border border-emerald-200 break-keep">
+              "어르신이 웃으실 수 있는 새로운 방법이 분명 있을 거예요!"
+            </p>
+
+            <!-- 태그 모음 -->
+            <div id="primary-tags" class="flex flex-wrap justify-center gap-2 pt-1"></div>
+
+            <!-- 2순위 보조 역할 배지 -->
+            <div class="pt-4 border-t border-emerald-200/80 max-w-xl mx-auto">
+              <div class="bg-white/90 rounded-2xl px-4 py-3 border border-emerald-200 flex flex-col sm:flex-row items-center justify-center gap-2 text-base sm:text-lg">
+                <span class="font-extrabold text-slate-700">🥈 나의 제2보조역할 (차점자):</span>
+                <span id="secondary-role-text" class="font-black text-teal-800">🐝 꼼꼼한 꿀벌 (빈틈없는 마감 수호자) [13점]</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 방사형 차트 (Radar Chart) 단독 대형 카드 -->
+        <div class="print-card bg-white rounded-3xl shadow-md border-2 border-slate-200 p-4 sm:p-8">
+          <div class="mb-3">
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+              <span>📊</span> <span>9대 케어팀 역할 밸런스 (방사형 차트)</span>
+            </h3>
+            <p class="text-base sm:text-lg text-emerald-800 font-bold bg-emerald-50 px-4 py-2 rounded-xl mt-2 border border-emerald-200">
+              ● 초록색 영역이 넓고 바깥쪽에 가까울수록 나의 핵심 강점 역할입니다 (만점: 15점)
+            </p>
+          </div>
+
+          <div class="radar-box">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 가로 막대그래프 & 점수 요약표 카드 -->
+        <div class="print-card bg-white rounded-3xl shadow-md border-2 border-slate-200 p-4 sm:p-8 space-y-6">
+          <div>
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+              <span>📈</span> <span>유형별 상세 득점 순위 (막대그래프)</span>
+            </h3>
+            <p class="text-base sm:text-lg text-slate-600 font-bold mt-1">
+              높은 점수를 받은 상위 2~3개 역할이 현장에서 내가 가장 자연스럽게 발휘하는 모습입니다.
+            </p>
+          </div>
+
+          <div class="bar-box">
+            <canvas id="barChart"></canvas>
+          </div>
+
+          <!-- 큰 글씨 점수 요약표 -->
+          <div class="pt-4">
+            <h4 class="text-lg sm:text-xl font-extrabold text-slate-900 mb-3">📋 9가지 역할 점수 한눈에 보기</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full border-collapse text-left">
+                <thead>
+                  <tr class="bg-slate-100 border-y-2 border-slate-300 text-base sm:text-lg font-extrabold text-slate-800">
+                    <th class="py-3 px-3 sm:px-4">순위</th>
+                    <th class="py-3 px-3 sm:px-4">동물 캐릭터 (역할명)</th>
+                    <th class="py-3 px-3 sm:px-4 text-center">득점</th>
+                    <th class="py-3 px-3 sm:px-4">수준</th>
+                  </tr>
+                </thead>
+                <tbody id="score-table-body" class="divide-y divide-slate-200 text-base sm:text-lg font-bold"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- 장기요양 실무 상세 해석 (강점 & 약점) -->
+        <div class="print-card bg-white rounded-3xl shadow-md border-2 border-slate-200 p-5 sm:p-8 space-y-6">
+          <div class="border-b-2 border-slate-200 pb-3">
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+              <span>🔍</span> <span>장기요양 현장 업무 특성 및 강·약점 분석</span>
+            </h3>
+          </div>
+
+          <div id="primary-summary" class="senior-body bg-slate-50 border-l-8 border-emerald-600 p-4 sm:p-6 rounded-r-2xl font-bold text-slate-800"></div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- 강점 -->
+            <div class="bg-emerald-50/70 border-2 border-emerald-200 rounded-2xl p-5 space-y-3">
+              <h4 class="text-xl font-black text-emerald-900 flex items-center gap-2">
+                <span>💪</span> <span>돌봄 현장에서 빛나는 강점</span>
+              </h4>
+              <ul id="primary-strengths" class="space-y-3 senior-body text-slate-800 list-disc list-inside"></ul>
+            </div>
+
+            <!-- 약점 및 주의점 -->
+            <div class="bg-amber-50/70 border-2 border-amber-200 rounded-2xl p-5 space-y-3">
+              <h4 class="text-xl font-black text-amber-900 flex items-center gap-2">
+                <span>⚠️</span> <span>주의할 약점 & 보완 포인트</span>
+              </h4>
+              <ul id="primary-weaknesses" class="space-y-3 senior-body text-slate-800 list-disc list-inside"></ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 리더 & 동료 맞춤 소통 가이드 -->
+        <div class="print-card bg-white rounded-3xl shadow-md border-2 border-slate-200 p-5 sm:p-8 space-y-6">
+          <div class="border-b-2 border-slate-200 pb-3">
+            <h3 class="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
+              <span>🤝</span> <span>함께 일할 때 꼭 알아야 할 소통 & 코칭 가이드</span>
+            </h3>
+            <p class="text-base sm:text-lg text-slate-600 font-bold mt-1">
+              이 결과지를 놓고 시설장님, 팀장님, 동료 선생님들과 서로 대화를 나누어 보세요!
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="bg-blue-50/70 border-2 border-blue-200 rounded-2xl p-5 space-y-2.5">
+              <h4 class="text-xl font-black text-blue-950 flex items-center gap-2">
+                <span>👑</span> <span>리더(원장·국장·팀장)는 이렇게 대해주세요</span>
+              </h4>
+              <p id="guide-leader" class="senior-body text-slate-800 font-medium"></p>
+            </div>
+
+            <div class="bg-purple-50/70 border-2 border-purple-200 rounded-2xl p-5 space-y-2.5">
+              <h4 class="text-xl font-black text-purple-950 flex items-center gap-2">
+                <span>💬</span> <span>동료 팀원은 이렇게 소통하면 좋아요</span>
+              </h4>
+              <p id="guide-peer" class="senior-body text-slate-800 font-medium"></p>
+            </div>
+          </div>
+
+          <!-- DO & DON'T -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="bg-teal-50/80 border-2 border-teal-300 rounded-2xl p-5 space-y-3">
+              <h4 class="text-xl font-black text-teal-950 flex items-center gap-2">
+                <span>⭕</span> <span>이 유형에게 해줘야 할 것 (DO)</span>
+              </h4>
+              <ul id="guide-do" class="space-y-2.5 senior-body text-slate-800 font-bold"></ul>
+            </div>
+
+            <div class="bg-rose-50/80 border-2 border-rose-300 rounded-2xl p-5 space-y-3">
+              <h4 class="text-xl font-black text-rose-950 flex items-center gap-2">
+                <span>❌</span> <span>이 유형에게 피해야 할 것 (DON'T)</span>
+              </h4>
+              <ul id="guide-dont" class="space-y-2.5 senior-body text-slate-800 font-bold"></ul>
+            </div>
+          </div>
+
+          <!-- 번아웃 점검 & 환상의 짝꿍 -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div class="bg-slate-100 border-2 border-slate-300 rounded-2xl p-5 space-y-2">
+              <h4 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                <span>🩺</span> <span>리더와 동료가 챙겨야 할 정기 점검 포인트</span>
+              </h4>
+              <p id="guide-check" class="senior-body text-slate-800 font-medium"></p>
+            </div>
+
+            <div class="bg-emerald-50 border-2 border-emerald-300 rounded-2xl p-5 space-y-2">
+              <h4 class="text-xl font-black text-emerald-950 flex items-center gap-2">
+                <span>💞</span> <span>돌봄 현장 환상의 케미 짝꿍</span>
+              </h4>
+              <p id="guide-partner" class="senior-body text-emerald-900 font-extrabold"></p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 하단 액션 버튼 영역 (인쇄 시 숨김) -->
+      <div class="no-print bg-white rounded-3xl shadow-lg border-2 border-emerald-200 p-5 sm:p-6 flex flex-wrap items-center justify-center gap-3.5">
+        <button onclick="handlePrint()" class="w-full sm:w-auto px-7 py-4 bg-emerald-700 hover:bg-emerald-800 text-white text-lg sm:text-xl font-black rounded-2xl shadow-md flex items-center justify-center gap-2 transition">
+          <span>🖨️</span> <span>A4 인쇄 / PDF 저장</span>
+        </button>
+        <button onclick="downloadPDF()" id="btn-pdf" class="w-full sm:w-auto px-7 py-4 bg-teal-700 hover:bg-teal-800 text-white text-lg sm:text-xl font-black rounded-2xl shadow-md flex items-center justify-center gap-2 transition">
+          <span>📄</span> <span>PDF 파일 직접 다운로드</span>
+        </button>
+        <button onclick="openDictionaryModal()" class="w-full sm:w-auto px-6 py-4 bg-amber-500 hover:bg-amber-600 text-white text-lg sm:text-xl font-black rounded-2xl shadow-md flex items-center justify-center gap-2 transition">
+          <span>🐾</span> <span>9가지 캐릭터 전체 도감 보기</span>
+        </button>
+        <button onclick="resetToHome()" class="w-full sm:w-auto px-6 py-4 bg-slate-200 hover:bg-slate-300 text-slate-800 text-lg sm:text-xl font-extrabold rounded-2xl transition">
+          🔄 다시 진단하기
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 9가지 동물 캐릭터 도감 모달 -->
+  <div id="dictionary-modal" class="fixed inset-0 bg-black/60 z-50 hidden items-center justify-center p-3 sm:p-6 no-print">
+    <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border-2 border-emerald-300 overflow-hidden">
+      <div class="bg-emerald-900 text-white px-6 py-4 flex items-center justify-between">
+        <h3 class="text-xl sm:text-2xl font-black flex items-center gap-2">
+          <span>🐾</span> <span>장기요양 케어팀 9가지 동물 캐릭터 도감</span>
+        </h3>
+        <button onclick="closeDictionaryModal()" class="text-white bg-emerald-700 hover:bg-emerald-600 px-4 py-1.5 rounded-xl font-extrabold text-lg">
+          닫기 ✕
+        </button>
+      </div>
+      <div id="dictionary-content" class="p-4 sm:p-6 overflow-y-auto space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- 우클릭/보안 안내 토스트 -->
+  <div id="security-toast" class="fixed bottom-5 right-5 bg-slate-900 text-white px-5 py-3.5 rounded-2xl shadow-xl font-bold text-base z-50 hidden no-print">
+    🔒 저작권 및 코드 보호를 위해 마우스 우클릭 및 소스 보기가 제한되어 있습니다.
+  </div>
+
+  <script>
+    /**************************************************************
+     * 1. 코드 보안 (마우스 우클릭 및 개발자도구 단축키 차단)
+     **************************************************************/
+    function showSecurityToast() {
+      const toast = document.getElementById('security-toast');
+      if (!toast) return;
+      toast.classList.remove('hidden');
+      clearTimeout(window.__toastTimer);
+      window.__toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 2200);
+    }
+
+    document.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      showSecurityToast();
+    });
+
+    document.addEventListener('selectstart', function (e) {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      e.preventDefault();
+    });
+
+    document.addEventListener('dragstart', function (e) {
+      e.preventDefault();
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) ||
+        (e.ctrlKey && ['U', 'u', 'S', 's'].includes(e.key))
+      ) {
+        e.preventDefault();
+        showSecurityToast();
+        return false;
+      }
+    });
+
+    /**************************************************************
+     * 2. 장기요양 9가지 동물 캐릭터 역할 데이터 (저작권 안심 고유 명칭)
+     **************************************************************/
+    const ROLES = {
+      PL: {
+        id: 'PL',
+        animalName: '기발한 수달',
+        roleTitle: '창의적 돌봄설계가',
+        fullTitle: '기발한 수달(창의적 돌봄설계가)',
+        emoji: '🦦',
+        tags: ['#아이디어뱅크', '#맞춤형프로그램', '#돌봄난제해결'],
+        quote: '“어르신이 즐거워하실 새로운 방법이 분명 있을 거예요!”',
+        summary: '틀에 박힌 방식에서 벗어나 어르신의 잔존능력과 흥미를 이끌어내는 새로운 인지·여가 프로그램이나 맞춤형 케어 해법을 제시하는 아이디어 뱅크입니다.',
+        strengths: [
+          '치매 어르신의 배회나 케어 거부 등 까다로운 상황에서 독창적인 대처 아이디어를 냅니다.',
+          '계절 행사, 보호자 초청 행사, 신규 프로그램 기획 시 신선한 제안을 잘합니다.',
+          '기존의 불편한 업무 동선이나 케어 방식을 더 효율적으로 바꾸는 시각이 뛰어납니다.'
+        ],
+        weaknesses: [
+          '아이디어에 몰두하느라 일상적인 반복 기록이나 세부 마감 서류를 놓칠 때가 있습니다.',
+          '현실적인 예산이나 인력 여건보다 이상적인 계획에 치우칠 수 있습니다.'
+        ],
+        leaderGuide: '지나치게 세세한 규칙으로 틀에 가두기보다, 프로그램 기획이나 케어 개선 아이디어를 자유롭게 제안할 수 있는 판을 깔아주세요. 실행 단계에서는 꼼꼼한 동료와 짝을 지어주면 성과가 배가됩니다.',
+        peerGuide: '새로운 아이디어를 낼 때 “원래 하던 대로 하자”며 바로 꺾지 말고 먼저 경청해 주세요. 대신 현실적으로 적용하기 위해 필요한 세부 절차를 함께 다듬어 주면 최고입니다.',
+        doList: [
+          '신규 프로그램이나 어르신 맞춤 사례관리 아이디어 구상 맡기기',
+          '창의적인 시도로 어르신 반응이 좋았을 때 공개적으로 칭찬하기',
+          '서류 마감이나 루틴 업무는 체크리스트로 가볍게 리마인드해 주기'
+        ],
+        dontList: [
+          '“그건 해봤자 안 돼요”라며 시작도 전에 아이디어 차단하기',
+          '단순 반복적인 서류 작업만 온종일 단독으로 맡기기'
+        ],
+        checkPoint: '반복적인 일상 업무 속에서 무기력해지거나 자신의 의견이 묵살된다고 느끼지 않는지 정기적으로 의견을 물어봐 주세요.',
+        partner: '🦫 성실한 비버(우직한 루틴 실행가) & 🐝 꼼꼼한 꿀벌(빈틈없는 마감 수호자)'
+      },
+      RI: {
+        id: 'RI',
+        animalName: '발 빠른 미어캣',
+        roleTitle: '대외 협력 소통가',
+        fullTitle: '발 빠른 미어캣(대외 협력 소통가)',
+        emoji: '🦊',
+        tags: ['#보호자소통달인', '#지역자원연계', '#활기찬에너지'],
+        quote: '“보호자님과 지역사회 자원을 연결해 풍성한 돌봄을 만들어요!”',
+        summary: '특유의 친화력과 밝은 에너지로 어르신·보호자와 빠르게 신뢰(라포)를 쌓고, 외부 후원이나 봉사단, 타 기관 우수사례 등 유익한 자원을 발 빠르게 가져오는 소통가입니다.',
+        strengths: [
+          '신규 입소·이용 어르신 및 보호자의 긴장을 풀어드리고 신뢰를 형성하는 데 탁월합니다.',
+          '지역사회 보건소, 치매안심센터, 자원봉사단 등 외부 자원을 발굴하고 연계하는 능력이 뛰어납니다.',
+          '침체된 팀 분위기에 활력을 불어넣고 새로운 외부 트렌드를 빠르게 공유합니다.'
+        ],
+        weaknesses: [
+          '초기 열정이 뜨겁지만, 일이 일상화되면 흥미를 잃고 후속 관리가 느슨해질 수 있습니다.',
+          '대화와 소통에 집중하느라 정밀한 행정 문서 작성에서 사소한 실수를 할 수 있습니다.'
+        ],
+        leaderGuide: '보호자 상담, 지역사회 연계, 기관 홍보나 행사 진행 등 대외 접점 역할에서 역량을 발휘하게 해주세요. 다만 추진한 일의 마무리가 끝까지 잘 되었는지 중간 점검을 해주시면 좋습니다.',
+        peerGuide: '밝은 에너지와 정보력에 호응해 주시고, 미어캣 유형이 벌려놓은 좋은 일들이 현장에서 안정적으로 정착될 수 있도록 체계적인 정리와 마무리를 도와주세요.',
+        doList: [
+          '보호자 안부 소통, 신규 어르신 초기 적응 지원, 외부 협력 업무 맡기기',
+          '밝고 긍정적인 인사성과 소통 능력을 적극 인정해 주기',
+          '약속한 일정이나 후속 기록을 잊지 않도록 함께 점검해 주기'
+        ],
+        dontList: [
+          '소통 없이 혼자 밀실에서 종일 서류만 대조하는 업무 맡기기',
+          '말이 많거나 산만하다고 공개적인 자리에서 핀잔주기'
+        ],
+        checkPoint: '너무 많은 대외 소통이나 감정노동으로 에너지가 방전되지 않았는지, 혹은 시작한 일의 마무리가 누락되지 않았는지 살펴주세요.',
+        partner: '🐝 꼼꼼한 꿀벌(빈틈없는 마감 수호자) & 🦫 성실한 비버(우직한 루틴 실행가)'
+      },
+      CO: {
+        id: 'CO',
+        animalName: '인자한 코끼리',
+        roleTitle: '팀 시너지 조율사',
+        fullTitle: '인자한 코끼리(팀 시너지 조율사)',
+        emoji: '🐘',
+        tags: ['#다직종협업조율', '#강점발굴리더', '#침착한중재자'],
+        quote: '“선생님들 각자의 강점을 모으면 어르신 케어가 훨씬 수월해집니다!”',
+        summary: '요양보호사, 간호사, 사회복지사, 치료사 등 다직종 동료들의 강점을 정확히 파악하여 역할을 조율하고, 사례관리 회의와 팀 협업을 성숙하게 이끄는 조율사입니다.',
+        strengths: [
+          '직종 간 입장 차이가 있을 때 양쪽 이야기를 침착하게 듣고 합리적인 합의점을 찾아냅니다.',
+          '어르신 통합 사례회의나 인수인계 시 핵심 목표를 명확히 정리하고 역할을 공정하게 나눕니다.',
+          '동료의 숨은 장점을 발견해 적재적소에 배치하고 격려하는 포용력이 있습니다.'
+        ],
+        weaknesses: [
+          '업무를 위임하고 조율하는 과정에서 간혹 본인은 실무에서 한 발 물러서 있다는 오해를 살 수 있습니다.',
+          '모두의 의견을 수렴하려다 보니 초초를 다투는 상황에서 결정이 다소 신중해질 수 있습니다.'
+        ],
+        leaderGuide: '다직종 간 협업이 필요한 프로젝트, 신입 직원 멘토링, 사례관리 회의 진행 등을 믿고 맡겨보세요. 기관의 중간 다리 역할을 훌륭히 수행합니다.',
+        peerGuide: '팀 전체의 균형을 잡으려는 노력을 지지해 주시고, 조율된 역할 분담에 적극 협조해 주세요. 실무 지원이 필요할 때는 구체적으로 요청하면 흔쾌히 돕습니다.',
+        doList: [
+          '다직종 사례회의 진행, 인수인계 조율, 신규 직원 멘토 역할 맡기기',
+          '팀 전체를 바라보는 넓은 시야와 중재 능력을 신뢰해 주기',
+          '위임뿐만 아니라 현장 실무의 고충도 함께 나누기'
+        ],
+        dontList: [
+          '“입으로만 일한다”는 식의 오해나 폄하하는 말 하기',
+          '팀원들과 소통할 기회를 차단하고 단독 업무만 지시하기'
+        ],
+        checkPoint: '중간에서 리더와 팀원, 혹은 타 직종 간의 갈등을 조율하느라 남모르게 심리적 부담을 떠안고 있지 않은지 세심히 살펴주세요.',
+        partner: '🦁 열정 불도저 사자(목표 돌파 행동대장) & 🦉 냉철한 부엉이(철저한 리스크 감시관)'
+      },
+      SH: {
+        id: 'SH',
+        animalName: '열정 불도저 사자',
+        roleTitle: '목표 돌파 행동대장',
+        fullTitle: '열정 불도저 사자(목표 돌파 행동대장)',
+        emoji: '🦁',
+        tags: ['#위기대응선봉장', '#평가준비추진력', '#강력한돌파력'],
+        quote: '“우물쭈물할 시간 없어요! 지금 바로 핵심부터 해결합시다!”',
+        summary: '공단 정기평가 준비, 어르신 응급상황 발생, 밀린 업무 마감 등 위기나 목표가 주어졌을 때 강한 추진력으로 팀을 이끌고 결과를 만들어내는 행동대장입니다.',
+        strengths: [
+          '어르신 낙상이나 응급 병원 이송 등 위급한 순간에 당황하지 않고 신속하게 현장을 지휘합니다.',
+          '시설 평가나 지도점검 등 큰 과업을 앞두고 느슨해진 팀에 긴장감과 추진력을 불어넣습니다.',
+          '문제가 생겼을 때 회피하지 않고 정면으로 돌파하여 빠르게 해결책을 실행합니다.'
+        ],
+        weaknesses: [
+          '성과와 속도를 중시하다 보니 말투가 단호해져 마음이 여린 동료가 상처받을 수 있습니다.',
+          '업무 속도가 느리거나 우유부단한 상황을 보면 답답함을 참지 못하고 다그칠 수 있습니다.'
+        ],
+        leaderGuide: '명확한 목표와 기한이 있는 과제, 위기 대응, 평가 준비 TF 리더 역할을 맡기면 최고의 성과를 냅니다. 다만 동료들의 감정도 살필 수 있도록 부드러운 화법을 코칭해 주세요.',
+        peerGuide: '말투가 조금 직설적이더라도 악의가 아니라 “어르신과 기관의 목표를 빨리 해결하려는 열정” 때문임을 이해해 주세요. 결론부터 명확하게 소통하면 아주 잘 맞습니다.',
+        doList: [
+          '응급상황 대처, 평가 준비 추진, 지연된 과제 해결 등 도전적인 역할 맡기기',
+          '보고나 상의할 때는 핵심 결론부터 빠르고 명확하게 전달하기',
+          '빠른 판단과 추진력으로 위기를 넘겼을 때 확실하게 인정해 주기'
+        ],
+        dontList: [
+          '빙빙 돌려 말하거나 책임 소재를 흐리며 변명하기',
+          '추진 중인 일에 합리적 대안 없이 불평만 늘어놓기'
+        ],
+        checkPoint: '혼자 앞장서서 달리다가 동료들과 마찰이 생기지 않았는지, 과도한 책임감으로 화병이나 번아웃이 오지 않았는지 점검해 주세요.',
+        partner: '🐹 다정한 쿼카(마음이음 분위기메이커) & 🐘 인자한 코끼리(팀 시너지 조율사)'
+      },
+      ME: {
+        id: 'ME',
+        animalName: '냉철한 부엉이',
+        roleTitle: '철저한 리스크 감시관',
+        fullTitle: '냉철한 부엉이(철저한 리스크 감시관)',
+        emoji: '🦉',
+        tags: ['#낙상욕창예방분석', '#규정준수판단', '#객관적해결사'],
+        quote: '“감정에 치우치지 말고 기준과 어르신 안전 데이터부터 확인해 봅시다.”',
+        summary: '감정에 휩쓸리지 않고 장기요양 고시 기준, 급여제공 지침, 낙상·욕창 위험 요인을 객관적으로 분석하여 기관과 어르신의 안전을 지키는 리스크 감시관입니다.',
+        strengths: [
+          '어르신 상태 변화나 사고 발생 시 원인을 객관적으로 분석하여 재발 방지책을 정확히 세웁니다.',
+          '새로 도입하려는 프로그램이나 운영 방식의 장단점과 법적·행정적 리스크를 미리 짚어냅니다.',
+          '감정싸움으로 번질 수 있는 회의에서 팩트와 기준을 제시해 중심을 잡아줍니다.'
+        ],
+        weaknesses: [
+          '신중하고 비판적으로 검토하다 보니 동료들에게 차갑거나 부정적인 사람으로 비칠 수 있습니다.',
+          '열정적으로 아이디어를 낸 동료의 사기를 본의 아니게 꺾을 때가 있습니다.'
+        ],
+        leaderGuide: '기관 운영 규정 검토, 안전관리 라운딩, 평가 지표 자체 점검, 사고 원인 분석 등을 맡기면 빈틈이 없습니다. 의견을 구할 때는 충분히 검토할 시간과 근거 자료를 주세요.',
+        peerGuide: '부엉이 유형이 문제점을 지적할 때는 나를 공격하는 것이 아니라 “기관과 어르신의 안전을 지키기 위한 예방주사”로 받아들여 주세요. 논리적인 조언이 필요할 때 최고의 상담자입니다.',
+        doList: [
+          '안전사고 예방 점검, 평가 매뉴얼 해석, 중요 의사결정 전 리스크 검토 맡기기',
+          '감정적인 호소보다 객관적인 기록과 수치를 바탕으로 대화하기',
+          '날카로운 분석 덕분에 실수를 예방했을 때 고마움 표현하기'
+        ],
+        dontList: [
+          '근거 없이 “그냥 좋은 게 좋은 거지”라며 대충 넘어가자고 강요하기',
+          '충분한 설명 없이 즉석에서 무조건 동의하라고 압박하기'
+        ],
+        checkPoint: '비판적 검토 역할을 맡다 보니 팀 내에서 외톨이가 되거나 동료들과 정서적 거리감이 생기지 않았는지 따뜻하게 챙겨주세요.',
+        partner: '🦦 기발한 수달(창의적 돌봄설계가) & 🐘 인자한 코끼리(팀 시너지 조율사)'
+      },
+      TW: {
+        id: 'TW',
+        animalName: '다정한 쿼카',
+        roleTitle: '마음이음 분위기메이커',
+        fullTitle: '다정한 쿼카(마음이음 분위기메이커)',
+        emoji: '🐹',
+        tags: ['#공감경청왕', '#동료감정케어', '#따뜻한어르신돌봄'],
+        quote: '“선생님 오늘 많이 힘드셨죠? 제가 옆에서 같이 도와드릴게요!”',
+        summary: '어르신의 작은 표정 변화와 동료의 지친 마음을 누구보다 먼저 알아차리고 따뜻하게 보듬으며, 케어팀의 화목과 평화를 지키는 분위기메이커입니다.',
+        strengths: [
+          '불안해하시거나 우울감이 있는 어르신의 손을 잡아드리고 정서적 안정을 드리는 데 최고입니다.',
+          '교대 근무나 힘든 케어 업무로 지친 동료들의 고충을 들어주고 팀 내 갈등을 부드럽게 녹입니다.',
+          '누군가 바쁘거나 힘들어 보이면 내 일처럼 먼저 다가가 일손을 거들어 줍니다.'
+        ],
+        weaknesses: [
+          '거절을 잘 못해서 다른 사람의 부탁이나 감정을 다 받아주다 혼자 속앓이를 하기 쉽습니다.',
+          '갈등 상황이 두려워 꼭 해야 할 쓴소리나 단호한 결정을 미루는 경향이 있습니다.'
+        ],
+        leaderGuide: '신입 직원 적응 도우미, 정서 지원이 절실한 어르신 케어, 팀 단합 활동에서 큰 힘을 발휘합니다. 거절을 못 해 과중한 업무를 떠안고 있지 않은지 리더가 먼저 보호해 주세요.',
+        peerGuide: '쿼카 선생님의 친절과 배려를 당연하게 여기지 말고 “항상 챙겨주셔서 고마워요”라고 자주 표현해 주세요. 힘든 결정을 내려야 할 때는 옆에서 용기를 북돋아 주세요.',
+        doList: [
+          '어르신 정서 케어, 신규 입소자 및 신입 직원 라포 형성 역할 맡기기',
+          '따뜻하고 부드러운 말투로 대화하고 작은 배려에도 감사 표현하기',
+          '갈등 없는 화목하고 안정적인 근무 환경 만들어주기'
+        ],
+        dontList: [
+          '착하고 거절 못 한다고 해서 남들이 기피하는 힘든 일 떠넘기기',
+          '강압적이고 거친 언행으로 팀 분위기를 살벌하게 만들기'
+        ],
+        checkPoint: '겉으로는 늘 웃고 있지만 속으로 감정노동이 쌓여 소진(번아웃)되고 있지 않은지 1:1 티타임으로 마음을 다독여 주세요.',
+        partner: '🦁 열정 불도저 사자(목표 돌파 행동대장) & 🦫 성실한 비버(우직한 루틴 실행가)'
+      },
+      IMP: {
+        id: 'IMP',
+        animalName: '성실한 비버',
+        roleTitle: '우직한 루틴 실행가',
+        fullTitle: '성실한 비버(우직한 루틴 실행가)',
+        emoji: '🦫',
+        tags: ['#기본케어정석', '#일과루틴엄수', '#믿음직한기둥'],
+        quote: '“정해진 시간과 원칙대로 어르신 케어를 빈틈없이 해내겠습니다!”',
+        summary: '식사·배설·목욕 수발, 체위 변경, 투약 지원, 위생 관리 등 매일 반복되는 돌봄 루틴을 정해진 절차와 시간에 맞춰 흔들림 없이 해내는 현장의 든든한 기둥입니다.',
+        strengths: [
+          '급여제공계획서와 일과표에 따라 어르신 기본 케어를 한결같고 성실하게 수행합니다.',
+          '말보다 행동이 앞서며, 맡은 구역의 정리정돈·비품 관리·위생 상태를 깔끔하게 유지합니다.',
+          '리더의 지시사항과 기관 매뉴얼을 자의적으로 바꾸지 않고 정석대로 실행합니다.'
+        ],
+        weaknesses: [
+          '갑작스러운 일정 변경이나 예고 없는 업무 방식 교체에 스트레스를 크게 받습니다.',
+          '기존에 익숙해진 방식을 고수하려 해 새로운 변화에 적응하는 데 시간이 걸릴 수 있습니다.'
+        ],
+        leaderGuide: '업무를 지시할 때는 추상적인 말 대신 명확한 절차(매뉴얼)와 일과표를 제시해 주세요. 일정이나 케어 방식이 바뀔 때는 왜 바뀌는지 미리 설명해 주면 아주 안정적으로 따라옵니다.',
+        peerGuide: '묵묵히 현장의 가장 힘든 루틴 업무를 지탱해 주는 최고의 동료입니다. 급하게 일정을 바꾸기보다 사전 협의를 거치고, 성실한 노고에 진심 어린 존중을 보내주세요.',
+        doList: [
+          '명확한 매뉴얼과 시간표가 있는 일상 케어, 시설 환경·비품 관리 맡기기',
+          '변경 사항이 있을 때는 최소 하루 전에 구체적인 이유와 함께 공유하기',
+          '꾸준하고 변함없는 성실함을 기관의 모범으로 인정해 주기'
+        ],
+        dontList: [
+          '아침에 한 말을 오후에 바꾸는 등 기준 없이 지시 번복하기',
+          '구체적인 설명 없이 “알아서 대충 감으로 해주세요”라고 말하기'
+        ],
+        checkPoint: '묵묵히 일만 하다가 근골격계 통증이나 체력적 피로가 누적되지 않았는지, 갑작스러운 환경 변화로 답답해하지 않는지 살펴주세요.',
+        partner: '🦦 기발한 수달(창의적 돌봄설계가) & 🐹 다정한 쿼카(마음이음 분위기메이커)'
+      },
+      CF: {
+        id: 'CF',
+        animalName: '꼼꼼한 꿀벌',
+        roleTitle: '빈틈없는 마감 수호자',
+        fullTitle: '꼼꼼한 꿀벌(빈틈없는 마감 수호자)',
+        emoji: '🐝',
+        tags: ['#기록점검달인', '#안전체크무결점', '#마감시간엄수'],
+        quote: '“급여제공기록지 서명 하나, 침대 난간 하나까지 다시 확인했어요!”',
+        summary: '급여제공기록지 누락, 공단 청구 서류 오류, 어르신 침상 난간 및 복도 안전점검 등 작은 빈틈도 놓치지 않고 완벽하게 마무리하는 마감 수호자입니다.',
+        strengths: [
+          '일지 작성, 시간 기록, 서명 누락 등 평가 및 청구에서 감점될 수 있는 오류를 정확히 잡아냅니다.',
+          '어르신 투약 용량 확인, 욕창 예방 시간 준수, 낙상 방지 잠금장치 확인 등 안전 수칙에 철저합니다.',
+          '약속된 마감 기한을 반드시 지키며 끝까지 책임감 있게 업무를 완수합니다.'
+        ],
+        weaknesses: [
+          '모든 것을 직접 확인해야 마음이 놓여 동료에게 일을 맡기지 못하고 혼자 다 떠안기 쉽습니다.',
+          '사소한 디테일에 너무 집중하느라 전체적인 흐름이나 휴식 타이밍을 놓칠 수 있습니다.'
+        ],
+        leaderGuide: '공단 평가 서류 최종 점검, 청구 데이터 대조, 감염·안전 체크리스트 관리에 독보적인 인재입니다. 다만 완벽주의로 인해 스스로 지치지 않도록 우선순위를 정해주고 짐을 덜어주세요.',
+        peerGuide: '꿀벌 선생님이 기록 누락이나 정리를 짚어줄 때는 잔소리가 아니라 “우리 팀 전체가 평가나 감사에서 지적받지 않게 지켜주는 방패”임을 기억하고 적극 협조해 주세요.',
+        doList: [
+          '급여제공기록·간호일지 마감 점검, 감염·안전 라운딩, 평가 서류 검수 맡기기',
+          '기록지 작성 기준과 제자리 정리정돈 약속을 함께 잘 지켜주기',
+          '꼼꼼한 점검 덕분에 기관이 안전하게 운영됨을 자주 언급해 주기'
+        ],
+        dontList: [
+          '서류나 비품을 어질러 놓고 “나중에 한꺼번에 할게요”라며 미루기',
+          '꼼꼼하게 확인하는 모습을 보고 “너무 예민하다, 피곤하게 산다”고 말하기'
+        ],
+        checkPoint: '남들이 놓친 자잘한 뒷수습까지 혼자 도맡아 하느라 퇴근 후에도 긴장을 풀지 못하고 지쳐있지 않은지 꼭 점검해 주세요.',
+        partner: '🦊 발 빠른 미어캣(대외 협력 소통가) & 🦦 기발한 수달(창의적 돌봄설계가)'
+      },
+      SP: {
+        id: 'SP',
+        animalName: '탐구하는 독수리',
+        roleTitle: '전문 케어 스페셜리스트',
+        fullTitle: '탐구하는 독수리(전문 케어 스페셜리스트)',
+        emoji: '🦅',
+        tags: ['#전문케어지식', '#치매간호재활특화', '#프로페셔널'],
+        quote: '“전문적인 돌봄 지식과 정확한 기술이 어르신의 삶의 질을 바꿉니다!”',
+        summary: '치매 전문 케어, 와상 어르신 체위 변경 기술, 응급 간호 처치, 재활 운동, 사회복지 행정 법규 등 자신의 전문 분야를 깊이 있게 파고들어 현장의 수준을 높이는 전문가입니다.',
+        strengths: [
+          '어르신 질환별 특성(치매, 파킨슨, 뇌졸중 등)에 맞는 전문적인 케어 지식과 노하우가 풍부합니다.',
+          '새로운 직무 교육이나 케어 기술 습득에 열정적이며, 동료들에게 정확한 방법을 잘 알려줍니다.',
+          '자신의 직무 전문성에 대한 높은 자부심과 직업윤리를 가지고 프로답게 일합니다.'
+        ],
+        weaknesses: [
+          '자신의 전문 분야에는 열정적이지만, 그 외의 잡무나 타 부서 일반 업무에는 관심이 적을 수 있습니다.',
+          '전문 용어나 원칙을 강조하다가 현장 동료들과 소통할 때 다소 딱딱하게 느껴질 수 있습니다.'
+        ],
+        leaderGuide: '직무 전문성을 발휘할 수 있는 특화 영역(치매 전담, 중증 와상 케어, 직원 내부 강사, 전문 프로그램 전담 등)을 부여하고 전문가로서의 권위를 존중해 주면 최고의 충성도를 보입니다.',
+        peerGuide: '어르신 케어 중 헷갈리는 의학·복지·요양 기술이 있을 때 자문을 구해 보세요. 전문가로서 존중하며 물어보면 누구보다 친절하고 정확하게 노하우를 전수해 줍니다.',
+        doList: [
+          '전문 케어 기술 전수, 사례관리 자문, 사내 직무교육 및 신입 실습 지도 맡기기',
+          '보수교육이나 전문 직무 역량 강화 기회를 적극 지원하고 인정해 주기',
+          '해당 직종의 전문적 판단과 의견을 존중하며 경청하기'
+        ],
+        dontList: [
+          '전문성을 무시하고 아무런 상의 없이 일방적으로 업무 지시하기',
+          '“이론만 빠삭하고 현장 융통성이 없다”며 깎아내리기'
+        ],
+        checkPoint: '자신의 전문 분야에만 고립되어 타 직종 동료들과 소통이 단절되지 않도록 다직종 협력 회의에서 자연스럽게 연결고리를 만들어 주세요.',
+        partner: '🐘 인자한 코끼리(팀 시너지 조율사) & 🐹 다정한 쿼카(마음이음 분위기메이커)'
+      }
+    };
+
+    const ROLE_ORDER = ['PL', 'RI', 'CO', 'SH', 'ME', 'TW', 'IMP', 'CF', 'SP'];
+
+    /**************************************************************
+     * 3. 장기요양 현장 맞춤형 27개 진단 문항 (역할당 3문항)
+     **************************************************************/
+    const QUESTIONS = [
+      // Page 1 (1~9)
+      { id: 1, role: 'PL', text: '틀에 박힌 프로그램보다 어르신들이 신선해하실 만한 새로운 인지·여가 활동이나 케어 아이디어를 자주 떠올린다.' },
+      { id: 2, role: 'RI', text: '신규 어르신이나 보호자님과 처음 만났을 때 어색함을 빨리 풀고 금방 친밀한 신뢰 관계(라포)를 형성한다.' },
+      { id: 3, role: 'CO', text: '요양·간호·복지 등 여러 직종 선생님이 함께 일할 때 각자의 강점에 맞게 역할을 조율하고 정리를 잘한다.' },
+      { id: 4, role: 'SH', text: '공단 정기평가나 감사 준비처럼 마감이 촉박할 때 팀원들을 독려하여 목표한 기한 내에 일을 돌파해 낸다.' },
+      { id: 5, role: 'ME', text: '새로운 케어 방식이나 행사를 도입할 때, 어르신 안전 문제나 규정 위반 위험이 없는지 객관적으로 먼저 따져본다.' },
+      { id: 6, role: 'TW', text: '바쁜 근무 중에도 동료 선생님의 지친 표정이나 속상한 마음을 빨리 알아차리고 따뜻한 말로 위로해 준다.' },
+      { id: 7, role: 'IMP', text: '식사·배설 수발, 체위 변경, 환경 정리 등 매일 반복되는 일과를 정해진 시간과 절차대로 흔들림 없이 수행한다.' },
+      { id: 8, role: 'CF', text: '급여제공기록지나 간호·상태일지에 서명 누락, 시간 오기재 등 작은 실수가 없는지 끝까지 꼼꼼하게 확인한다.' },
+      { id: 9, role: 'SP', text: '치매 케어, 욕창 관리, 재활 운동, 노인복지 법규 등 내 직무 분야의 전문 지식과 기술을 깊이 있게 공부하는 편이다.' },
+
+      // Page 2 (10~18)
+      { id: 10, role: 'PL', text: '어르신이 식사나 목욕을 완강히 거부하실 때, 기존과 다른 기발하고 색다른 접근법으로 문제를 해결하곤 한다.' },
+      { id: 11, role: 'RI', text: '지역사회 봉사단, 후원 자원, 타 기관의 좋은 운영 사례 등 외부의 유익한 정보를 발 빠르게 알아보고 연결한다.' },
+      { id: 12, role: 'CO', text: '사례관리 회의나 인수인계 시간에 의견이 분분할 때, 핵심을 깔끔하게 요약하고 합리적인 결론을 이끌어낸다.' },
+      { id: 13, role: 'SH', text: '어르신 낙상이나 응급상황 등 위기가 발생했을 때, 당황하지 않고 즉시 현장을 지휘하며 빠르게 수습한다.' },
+      { id: 14, role: 'ME', text: '팀 내에서 의견 충돌이 있을 때 감정에 휩쓸리지 않고 장기요양 지침과 객관적 근거를 바탕으로 냉철하게 판단한다.' },
+      { id: 15, role: 'TW', text: '동료들 사이에 미묘한 신경전이나 갈등이 생기면 중간에서 분위기를 부드럽게 풀어주며 화합을 돕는다.' },
+      { id: 16, role: 'IMP', text: '추상적인 이야기보다 명확한 업무 매뉴얼과 급여제공계획서가 있을 때 가장 마음이 편하고 능률이 오른다.' },
+      { id: 17, role: 'CF', text: '퇴근하기 전 어르신 침상 난간, 휠체어 잠금장치, 전열기구 등 안전점검을 다시 한번 확인해야 마음이 놓인다.' },
+      { id: 18, role: 'SP', text: '현장에서 어르신 케어 방법이나 전문 지식이 헷갈릴 때 동료들이 나에게 자주 물어보고 자문을 구하는 편이다.' },
+
+      // Page 3 (19~27)
+      { id: 19, role: 'PL', text: '기관의 불편한 업무 동선이나 비효율적인 관행을 보면 “이렇게 바꿔보면 어떨까?” 하고 새로운 제안을 잘한다.' },
+      { id: 20, role: 'RI', text: '보호자 상담이나 전화 통화, 외부 기관 담당자와의 소통 업무를 맡으면 에너지가 나고 즐겁게 해낸다.' },
+      { id: 21, role: 'CO', text: '동료 선생님이 어떤 업무를 할 때 가장 잘하고 힘들어하는지 파악하여 서로 도울 수 있게 판을 잘 짜준다.' },
+      { id: 22, role: 'SH', text: '회의나 업무 진행이 지지부진하고 느슨해지면 다소 직설적으로 말하더라도 빠르게 결정을 내리고 추진시킨다.' },
+      { id: 23, role: 'ME', text: '어르신 상태 변화나 사고 기록을 볼 때 겉으로 드러난 현상뿐 아니라 근본적인 원인과 전후 맥락을 정확히 분석한다.' },
+      { id: 24, role: 'TW', text: '누군가 업무량이 몰려 힘들어 보이면 내 일을 조금 미루더라도 먼저 다가가 기꺼이 일손을 거들어 준다.' },
+      { id: 25, role: 'IMP', text: '한번 정해진 기관의 규칙과 약속은 누가 보지 않아도 끝까지 우직하고 성실하게 지키는 편이다.' },
+      { id: 26, role: 'CF', text: '내가 맡은 일이나 서류에서 사소한 빈틈이라도 발견되면 끝까지 수정하고 완벽하게 마무리해야 직성이 풀린다.' },
+      { id: 27, role: 'SP', text: '장기요양 전문가로서의 자부심이 크며, 전문 교육 수강이나 새로운 케어 기법 습득에 시간과 노력을 아끼지 않는다.' }
+    ];
+
+    const LIKERT_OPTIONS = [
+      { val: 1, label: '전혀 아니다' },
+      { val: 2, label: '아니다' },
+      { val: 3, label: '보통이다' },
+      { val: 4, label: '그렇다' },
+      { val: 5, label: '매우 그렇다' }
+    ];
+
+    /**************************************************************
+     * 4. 상태 관리 및 퀴즈 진행 로직
+     **************************************************************/
+    let currentPage = 1;
+    const questionsPerPage = 9;
+    const totalPages = 3;
+    let answers = {}; // { questionId: 1~5 }
+    let radarChartInstance = null;
+    let barChartInstance = null;
+    let lastCalculatedScores = null;
+
+    function startQuiz() {
+      currentPage = 1;
+      document.getElementById('screen-intro').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.remove('hidden');
+      renderQuizPage();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetToHome() {
+      answers = {};
+      currentPage = 1;
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+      document.getElementById('screen-intro').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderQuizPage() {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      const startIdx = (currentPage - 1) * questionsPerPage;
+      const endIdx = startIdx + questionsPerPage;
+      const pageQuestions = QUESTIONS.slice(startIdx, endIdx);
+
+      pageQuestions.forEach((q) => {
+        const selectedVal = answers[q.id] || null;
+        const card = document.createElement('div');
+        card.id = `q-card-${q.id}`;
+        card.className = `bg-white rounded-3xl shadow-sm border-2 transition p-5 sm:p-7 space-y-5 ${
+          selectedVal ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-200'
+        }`;
+
+        let buttonsHtml = '';
+        LIKERT_OPTIONS.forEach((opt) => {
+          const isSelected = selectedVal === opt.val;
+          buttonsHtml += `
+            <button
+              type="button"
+              onclick="selectAnswer(${q.id}, ${opt.val})"
+              class="likert-btn flex-1 rounded-2xl border-2 px-2 py-3 flex flex-col items-center justify-center gap-1 ${
+                isSelected
+                  ? 'selected'
+                  : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-emerald-50'
+              }"
+            >
+              <span class="text-xl sm:text-2xl font-black">${opt.val}점</span>
+              <span class="text-xs sm:text-base font-extrabold tracking-tight break-keep text-center leading-tight">${opt.label}</span>
+            </button>
+          `;
+        });
+
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <span class="inline-flex items-center justify-center bg-emerald-800 text-white font-black text-lg sm:text-xl rounded-xl px-3.5 py-1.5 shrink-0">
+              Q${q.id}
+            </span>
+            <p class="senior-question flex-1">${q.text}</p>
+          </div>
+          <div class="grid grid-cols-5 gap-1.5 sm:gap-3 pt-1">
+            ${buttonsHtml}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      updateProgressUI();
+    }
+
+    function selectAnswer(questionId, value) {
+      answers[questionId] = value;
+      renderQuizPage();
+    }
+
+    function updateProgressUI() {
+      const answeredCount = Object.keys(answers).length;
+      const percent = Math.round((answeredCount / QUESTIONS.length) * 100);
+      const startNum = (currentPage - 1) * questionsPerPage + 1;
+      const endNum = currentPage * questionsPerPage;
+
+      document.getElementById('page-indicator').textContent = `${currentPage} / ${totalPages} 페이지 (${startNum}~${endNum}번 문항)`;
+      document.getElementById('progress-text').textContent = `${answeredCount} / ${QUESTIONS.length} 완료 (${percent}%)`;
+      document.getElementById('progress-bar').style.width = `${percent}%`;
+
+      const prevBtn = document.getElementById('btn-prev');
+      const nextBtn = document.getElementById('btn-next');
+
+      prevBtn.style.visibility = currentPage === 1 ? 'hidden' : 'visible';
+      if (currentPage === totalPages) {
+        nextBtn.innerHTML = '진단 결과 확인하기 🏆';
+        nextBtn.className = 'flex-1 sm:flex-none px-10 py-4 bg-amber-600 hover:bg-amber-700 text-white text-xl sm:text-2xl font-black rounded-2xl shadow-lg transition';
+      } else {
+        nextBtn.innerHTML = '다음 페이지 ▶';
+        nextBtn.className = 'flex-1 sm:flex-none px-10 py-4 bg-emerald-700 hover:bg-emerald-800 text-white text-xl sm:text-2xl font-black rounded-2xl shadow-lg transition';
+      }
+    }
+
+    function prevPage() {
+      if (currentPage > 1) {
+        currentPage--;
+        renderQuizPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function nextPage() {
+      const startIdx = (currentPage - 1) * questionsPerPage;
+      const pageQuestions = QUESTIONS.slice(startIdx, startIdx + questionsPerPage);
+
+      for (const q of pageQuestions) {
+        if (!answers[q.id]) {
+          alert(`${q.id}번 문항이 아직 선택되지 않았습니다.\n문항을 눌러 점수를 선택해 주세요!`);
+          const el = document.getElementById(`q-card-${q.id}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-4', 'ring-amber-400');
+            setTimeout(() => el.classList.remove('ring-4', 'ring-amber-400'), 2000);
+          }
+          return;
+        }
+      }
+
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderQuizPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        showResults();
+      }
+    }
+
+    // 샘플 결과 즉시 확인
+    function fillDemoResult() {
+      const demoScores = [
+        5, 4, 4, 3, 4, 5, 4, 5, 3,
+        5, 3, 4, 3, 4, 4, 4, 5, 4,
+        4, 4, 3, 3, 4, 5, 4, 4, 3
+      ];
+      QUESTIONS.forEach((q, idx) => {
+        answers[q.id] = demoScores[idx];
+      });
+      if (!document.getElementById('input-org').value) {
+        document.getElementById('input-org').value = '행복노인요양원';
+      }
+      if (!document.getElementById('input-name').value) {
+        document.getElementById('input-name').value = '김케어';
+      }
+      showResults();
+    }
+
+    /**************************************************************
+     * 5. 결과 산출 및 화면 렌더링
+     **************************************************************/
+    function calculateScores() {
+      const scores = {};
+      ROLE_ORDER.forEach((r) => (scores[r] = 0));
+      QUESTIONS.forEach((q) => {
+        scores[q.role] += answers[q.id] || 3;
+      });
+      return scores;
+    }
+
+    function showResults() {
+      const scores = calculateScores();
+      lastCalculatedScores = scores;
+
+      // 득점 순 정렬
+      const sortedRoles = [...ROLE_ORDER].sort((a, b) => scores[b] - scores[a]);
+      const primaryKey = sortedRoles[0];
+      const secondaryKey = sortedRoles[1];
+      const primaryRole = ROLES[primaryKey];
+      const secondaryRole = ROLES[secondaryKey];
+
+      // 화면 전환
+      document.getElementById('screen-intro').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.remove('hidden');
+
+      // 진단자 정보 표시
+      const orgVal = document.getElementById('input-org').value.trim() || '장기요양기관';
+      const jobVal = document.getElementById('input-job').value;
+      const nameVal = document.getElementById('input-name').value.trim() || '선생님';
+      const todayStr = new Date().toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      document.getElementById('res-org').textContent = orgVal;
+      document.getElementById('res-user').textContent = `${nameVal} (${jobVal})`;
+      document.getElementById('res-date').textContent = todayStr;
+
+      // 주역할 & 보조역할 카드 채우기
+      document.getElementById('primary-emoji').textContent = primaryRole.emoji;
+      document.getElementById('primary-title').textContent = `“${primaryRole.animalName} (${primaryRole.roleTitle})”`;
+      document.getElementById('primary-score-badge').textContent = `15점 만점 중 ${scores[primaryKey]}점`;
+      document.getElementById('primary-quote').textContent = primaryRole.quote;
+
+      const tagsContainer = document.getElementById('primary-tags');
+      tagsContainer.innerHTML = primaryRole.tags
+        .map(
+          (t) =>
+            `<span class="bg-emerald-800 text-white px-4 py-1.5 rounded-full text-base sm:text-lg font-extrabold">${t}</span>`
+        )
+        .join('');
+
+      document.getElementById('secondary-role-text').textContent = `${secondaryRole.emoji} ${secondaryRole.animalName} (${secondaryRole.roleTitle}) [${scores[secondaryKey]}점]`;
+
+      // 상세 해석 채우기
+      document.getElementById('primary-summary').textContent = primaryRole.summary;
+      document.getElementById('primary-strengths').innerHTML = primaryRole.strengths
+        .map((s) => `<li class="leading-relaxed"><strong>${s}</strong></li>`)
+        .join('');
+      document.getElementById('primary-weaknesses').innerHTML = primaryRole.weaknesses
+        .map((w) => `<li class="leading-relaxed"><strong>${w}</strong></li>`)
+        .join('');
+
+      // 리더 & 동료 가이드 채우기
+      document.getElementById('guide-leader').textContent = primaryRole.leaderGuide;
+      document.getElementById('guide-peer').textContent = primaryRole.peerGuide;
+      document.getElementById('guide-do').innerHTML = primaryRole.doList
+        .map((d) => `<li class="flex items-start gap-2"><span class="text-teal-700 font-black">✔</span><span>${d}</span></li>`)
+        .join('');
+      document.getElementById('guide-dont').innerHTML = primaryRole.dontList
+        .map((d) => `<li class="flex items-start gap-2"><span class="text-rose-600 font-black">✖</span><span>${d}</span></li>`)
+        .join('');
+      document.getElementById('guide-check').textContent = primaryRole.checkPoint;
+      document.getElementById('guide-partner').textContent = primaryRole.partner;
+
+      // 요약 테이블 렌더링
+      const tbody = document.getElementById('score-table-body');
+      tbody.innerHTML = sortedRoles
+        .map((key, idx) => {
+          const r = ROLES[key];
+          const sc = scores[key];
+          let levelBadge = '';
+          if (sc >= 13) {
+            levelBadge = `<span class="bg-emerald-700 text-white px-3 py-1 rounded-lg text-sm sm:text-base font-extrabold">핵심 강점</span>`;
+          } else if (sc >= 10) {
+            levelBadge = `<span class="bg-teal-100 text-teal-900 px-3 py-1 rounded-lg text-sm sm:text-base font-extrabold">우수 역량</span>`;
+          } else if (sc >= 7) {
+            levelBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1 rounded-lg text-sm sm:text-base font-bold">보통</span>`;
+          } else {
+            levelBadge = `<span class="bg-amber-100 text-amber-900 px-3 py-1 rounded-lg text-sm sm:text-base font-bold">보조/잠재</span>`;
+          }
+
+          return `
+            <tr class="${idx === 0 ? 'bg-emerald-50/90' : ''}">
+              <td class="py-3 px-3 sm:px-4 font-black text-emerald-900">${idx + 1}위</td>
+              <td class="py-3 px-3 sm:px-4 font-extrabold text-slate-900">
+                ${r.emoji} ${r.animalName} <span class="text-emerald-800">(${r.roleTitle})</span>
+              </td>
+              <td class="py-3 px-3 sm:px-4 text-center font-black text-lg sm:text-xl text-emerald-800">${sc}점</td>
+              <td class="py-3 px-3 sm:px-4">${levelBadge}</td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      // 차트 그리기
+      renderCharts(scores, false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**************************************************************
+     * 6. 방사형 차트 & 막대그래프 렌더링 (스마트폰 & 시니어 완벽 대응)
+     * - 방사형 차트 설명란 삭제, 2줄 라벨 + 큰 글씨 + 모바일 여백 최적화
+     **************************************************************/
+    function renderCharts(scores, isExportMode = false) {
+      const isMobile = !isExportMode && window.innerWidth < 640;
+
+      // 1) 방사형 차트 (Radar Chart)
+      // 설명 문구 삭제 -> 1줄: 동물명 [점수], 2줄: (역할명)
+      const radarLabels = ROLE_ORDER.map((key) => {
+        const r = ROLES[key];
+        const sc = scores[key];
+        if (isMobile) {
+          return [`${r.animalName}[${sc}]`, `(${r.roleTitle})`];
+        }
+        return [`${r.emoji} ${r.animalName} [${sc}점]`, `(${r.roleTitle})`];
+      });
+
+      const radarDataValues = ROLE_ORDER.map((key) => scores[key]);
+
+      const radarCtx = document.getElementById('radarChart').getContext('2d');
+      if (radarChartInstance) {
+        radarChartInstance.destroy();
+      }
+
+      radarChartInstance = new Chart(radarCtx, {
+        type: 'radar',
+        data: {
+          labels: radarLabels,
+          datasets: [
+            {
+              label: '나의 역할 점수 (15점 만점)',
+              data: radarDataValues,
+              backgroundColor: 'rgba(5, 150, 105, 0.28)',
+              borderColor: '#047857',
+              borderWidth: isMobile ? 2.5 : 3.5,
+              pointBackgroundColor: '#065f46',
+              pointBorderColor: '#ffffff',
+              pointBorderWidth: 2,
+              pointRadius: isMobile ? 4 : 6,
+              pointHoverRadius: 8
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: isMobile
+              ? { top: 8, bottom: 8, left: 4, right: 4 }
+              : isExportMode
+              ? { top: 14, bottom: 14, left: 24, right: 24 }
+              : { top: 20, bottom: 20, left: 30, right: 30 }
+          },
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              titleFont: { size: 16, weight: 'bold' },
+              bodyFont: { size: 15, weight: 'bold' },
+              padding: 12,
+              callbacks: {
+                title: function (items) {
+                  const idx = items[0].dataIndex;
+                  const role = ROLES[ROLE_ORDER[idx]];
+                  return `${role.emoji} ${role.animalName} (${role.roleTitle})`;
+                },
+                label: function (item) {
+                  return ` 득점: ${item.raw}점 / 15점 만점`;
+                }
+              }
+            }
+          },
+          scales: {
+            r: {
+              min: 0,
+              max: 15,
+              beginAtZero: true,
+              ticks: {
+                stepSize: 3,
+                font: {
+                  size: isMobile ? 11 : 14,
+                  weight: '800',
+                  family: 'Pretendard'
+                },
+                color: '#475569',
+                backdropColor: 'rgba(255, 255, 255, 0.85)',
+                backdropPadding: 2
+              },
+              grid: {
+                color: '#cbd5e1',
+                lineWidth: 1.5
+              },
+              angleLines: {
+                color: '#cbd5e1',
+                lineWidth: 1.5
+              },
+              pointLabels: {
+                color: '#0f172a',
+                padding: isMobile ? 4 : 12,
+                font: {
+                  size: isMobile ? 12 : isExportMode ? 13 : 15,
+                  weight: '800',
+                  family: 'Pretendard',
+                  lineHeight: 1.25
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 2) 가로 막대그래프 (Bar Chart) - 스마트폰 잘림 완벽 방지
+      const sortedKeys = [...ROLE_ORDER].sort((a, b) => scores[b] - scores[a]);
+      const barLabels = sortedKeys.map((key) => {
+        const r = ROLES[key];
+        if (isMobile) {
+          return [`${r.emoji} ${r.animalName}`, `(${r.roleTitle})`];
+        }
+        return `${r.emoji} ${r.animalName} (${r.roleTitle})`;
+      });
+      const barValues = sortedKeys.map((key) => scores[key]);
+
+      const barColors = sortedKeys.map((_, idx) => {
+        if (idx === 0) return '#047857';
+        if (idx === 1) return '#0d9488';
+        if (idx === 2) return '#10b981';
+        return '#64748b';
+      });
+
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      if (barChartInstance) {
+        barChartInstance.destroy();
+      }
+
+      // 막대 끝 점수 표시 커스텀 플러그인
+      const barScoreLabelPlugin = {
+        id: 'barScoreLabelPlugin',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          ctx.save();
+          const meta = chart.getDatasetMeta(0);
+          meta.data.forEach((bar, index) => {
+            const val = barValues[index];
+            ctx.font = `900 ${isMobile ? '13px' : '15px'} Pretendard`;
+            ctx.fillStyle = '#0f172a';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${val}점`, bar.x + 8, bar.y);
+          });
+          ctx.restore();
+        }
+      };
+
+      barChartInstance = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: barLabels,
+          datasets: [
+            {
+              label: '점수',
+              data: barValues,
+              backgroundColor: barColors,
+              borderRadius: 8,
+              barThickness: isMobile ? 22 : isExportMode ? 18 : 26
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: {
+            padding: {
+              top: 6,
+              bottom: 6,
+              left: 4,
+              right: isMobile ? 48 : 60
+            }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              titleFont: { size: 15, weight: 'bold' },
+              bodyFont: { size: 15, weight: 'bold' }
+            }
+          },
+          scales: {
+            x: {
+              min: 0,
+              max: 15,
+              ticks: {
+                stepSize: 3,
+                font: {
+                  size: isMobile ? 12 : 14,
+                  weight: '800',
+                  family: 'Pretendard'
+                },
+                color: '#334155'
+              },
+              grid: {
+                color: '#e2e8f0'
+              }
+            },
+            y: {
+              ticks: {
+                autoSkip: false,
+                color: '#0f172a',
+                font: {
+                  size: isMobile ? 12.5 : isExportMode ? 13 : 15,
+                  weight: '800',
+                  family: 'Pretendard',
+                  lineHeight: 1.2
+                }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        },
+        plugins: [barScoreLabelPlugin]
+      });
+    }
+
+    // 화면 회전이나 리사이즈 시 차트 반응형 재렌더링
+    window.addEventListener('resize', () => {
+      if (lastCalculatedScores && !document.getElementById('screen-result').classList.contains('hidden')) {
+        clearTimeout(window.__resizeTimer);
+        window.__resizeTimer = setTimeout(() => {
+          renderCharts(lastCalculatedScores, false);
+        }, 200);
+      }
+    });
+
+    /**************************************************************
+     * 7. 9가지 동물 캐릭터 도감 모달
+     **************************************************************/
+    function openDictionaryModal() {
+      const modal = document.getElementById('dictionary-modal');
+      const content = document.getElementById('dictionary-content');
+
+      content.innerHTML = ROLE_ORDER.map((key) => {
+        const r = ROLES[key];
+        return `
+          <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-5 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+              <div class="flex items-center gap-3">
+                <span class="text-4xl">${r.emoji}</span>
+                <div>
+                  <h4 class="text-xl sm:text-2xl font-black text-emerald-950">${r.animalName} <span class="text-emerald-700">(${r.roleTitle})</span></h4>
+                  <p class="text-base font-bold text-slate-600 mt-0.5">${r.quote}</p>
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                ${r.tags.map((t) => `<span class="bg-emerald-100 text-emerald-900 px-3 py-1 rounded-full text-sm font-extrabold">${t}</span>`).join('')}
+              </div>
+            </div>
+            <p class="senior-body text-slate-800 font-medium">${r.summary}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-base pt-1">
+              <div class="bg-white p-3.5 rounded-xl border border-emerald-200">
+                <div class="font-black text-emerald-900 mb-1">💪 현장 핵심 강점</div>
+                <p class="text-slate-700 font-bold">${r.strengths[0]}</p>
+              </div>
+              <div class="bg-white p-3.5 rounded-xl border border-blue-200">
+                <div class="font-black text-blue-900 mb-1">💞 환상의 케미 짝꿍</div>
+                <p class="text-slate-700 font-bold">${r.partner}</p>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeDictionaryModal() {
+      const modal = document.getElementById('dictionary-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    /**************************************************************
+     * 8. A4 인쇄 및 PDF 다운로드 비율 최적화
+     **************************************************************/
+    function handlePrint() {
+      if (lastCalculatedScores) {
+        renderCharts(lastCalculatedScores, true);
+      }
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+          if (lastCalculatedScores) {
+            renderCharts(lastCalculatedScores, false);
+          }
+        }, 500);
+      }, 300);
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('printable-area');
+      const btn = document.getElementById('btn-pdf');
+      const originalText = btn.innerHTML;
+
+      btn.innerHTML = '<span>⏳</span> <span>A4 맞춤 PDF 생성 중...</span>';
+      btn.disabled = true;
+
+      element.classList.add('pdf-export-mode');
+      if (lastCalculatedScores) {
+        renderCharts(lastCalculatedScores, true);
+      }
+
+      const nameVal = document.getElementById('input-name').value.trim() || '진단자';
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: `장기요양_케어팀역할진단_${nameVal}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          scrollY: 0,
+          windowWidth: 780
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      setTimeout(() => {
+        html2pdf()
+          .set(opt)
+          .from(element)
+          .save()
+          .then(() => {
+            element.classList.remove('pdf-export-mode');
+            if (lastCalculatedScores) {
+              renderCharts(lastCalculatedScores, false);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+          })
+          .catch(() => {
+            element.classList.remove('pdf-export-mode');
+            if (lastCalculatedScores) {
+              renderCharts(lastCalculatedScores, false);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            alert('PDF 생성 중 오류가 발생했습니다. [A4 인쇄 / PDF 저장] 버튼을 이용해 주세요.');
+          });
+      }, 450);
+    }
+  </script>
+</body>
+</html>
